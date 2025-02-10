@@ -4,20 +4,51 @@ const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
 const axios = require('axios');
+const btoa = str => Buffer.from(str).toString('base64');
 
 const app = express();
-const port = 3001;
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const USER_AGENT = 'RedditorChat/1.0.0';
+
 app.use(cors());
 app.use(express.json());
 
 // Cache for storing user comments
 const userCommentsCache = new Map();
+
+function logRequest(req, message) {
+  console.log(`[${new Date().toISOString()}] ${message}`, {
+    path: req.path,
+    body: req.body,
+    headers: req.headers
+  });
+}
+
+async function getRedditAccessToken() {
+  try {
+    const basicAuth = btoa(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`);
+    const response = await axios.post(
+      'https://www.reddit.com/api/v1/access_token',
+      'grant_type=client_credentials',
+      {
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': USER_AGENT
+        }
+      }
+    );
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Error getting Reddit access token:', error);
+    throw new Error('Failed to authenticate with Reddit');
+  }
+}
 
 async function fetchUserComments(username) {
   console.log(`Attempting to fetch comments for user: ${username}`);
@@ -28,10 +59,21 @@ async function fetchUserComments(username) {
   }
 
   try {
+    const accessToken = await getRedditAccessToken();
     console.log(`Making Reddit API request for ${username}'s comments`);
     const response = await axios.get(
-      `https://www.reddit.com/user/${username}/comments.json?limit=50`
+      `https://oauth.reddit.com/user/${username}/comments?limit=50`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'User-Agent': USER_AGENT
+        }
+      }
     );
+    
+    if (!response.data?.data?.children?.length) {
+      throw new Error('No comments found or invalid username');
+    }
     
     const comments = response.data.data.children
       .map(child => child.data.body)
@@ -46,18 +88,32 @@ async function fetchUserComments(username) {
     console.error('Error fetching Reddit comments:', {
       message: error.message,
       status: error.response?.status,
-      statusText: error.response?.statusText
+      statusText: error.response?.statusText,
+      data: error.response?.data
     });
+    
+    if (error.response?.status === 403) {
+      throw new Error('Unable to access Reddit API. Please try again later.');
+    } else if (error.response?.status === 404) {
+      throw new Error('Username not found');
+    }
+    
     throw new Error(`Failed to fetch user comments: ${error.message}`);
   }
 }
 
 app.post('/initialize-chat', async (req, res) => {
+  logRequest(req, 'Initialize chat request received');
   try {
     const { username } = req.body;
     await fetchUserComments(username);
+    console.log(`Successfully initialized chat for ${username}`);
     res.json({ success: true });
   } catch (error) {
+    console.error('Initialize chat error:', {
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ error: error.message });
   }
 });
@@ -118,6 +174,13 @@ Keep responses concise and natural, as if in a casual Reddit conversation.`;
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-}); 
+// Move port definition to only be used in local dev
+if (process.env.NODE_ENV !== 'production') {
+  const port = 3001;
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+}
+
+// Export the app for Lambda
+module.exports = app; 

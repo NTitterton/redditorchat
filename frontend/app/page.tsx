@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import config from '../config'
 
 export default function Home() {
   const [username, setUsername] = useState('')
@@ -14,7 +15,7 @@ export default function Home() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('http://localhost:3001/initialize-chat', {
+      const response = await fetch(config.apiUrl + '/initialize-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,7 +53,7 @@ export default function Home() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('http://localhost:3001/chat', {
+      const response = await fetch(config.apiUrl + '/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

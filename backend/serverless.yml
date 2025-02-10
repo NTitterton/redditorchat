@@ -1,0 +1,41 @@
+service: redditorchat
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  environment:
+    OPENAI_API_KEY: ${OPENAI_API_KEY}
+    REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID}
+    REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET}
+
+functions:
+  api:
+    handler: lambda.handler
+    events:
+      - http:
+          path: /initialize-chat
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+      - http:
+          path: /chat
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false 
