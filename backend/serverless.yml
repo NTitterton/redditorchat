@@ -25,7 +25,7 @@ functions:
           path: /initialize-chat
           method: post
           cors:
-            origin: '*'
+            origin: 'https://redditorchat-git-main-nick-tittertons-projects.vercel.app,https://redditorchat.vercel.app,http://localhost:3000'
             headers:
               - Content-Type
               - X-Amz-Date
@@ -38,7 +38,7 @@ functions:
           path: /chat
           method: post
           cors:
-            origin: '*'
+            origin: 'https://redditorchat-git-main-nick-tittertons-projects.vercel.app,https://redditorchat.vercel.app,http://localhost:3000'
             headers:
               - Content-Type
               - X-Amz-Date
