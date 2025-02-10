@@ -5,9 +5,17 @@ provider:
   runtime: nodejs18.x
   region: us-east-1
   environment:
-    OPENAI_API_KEY: ${OPENAI_API_KEY}
-    REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID}
-    REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET}
+    OPENAI_API_KEY: ${ssm:/redditorchat/OPENAI_API_KEY}
+    REDDIT_CLIENT_ID: ${ssm:/redditorchat/REDDIT_CLIENT_ID}
+    REDDIT_CLIENT_SECRET: ${ssm:/redditorchat/REDDIT_CLIENT_SECRET}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+          Resource:
+            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/redditorchat/*
 
 functions:
   api:

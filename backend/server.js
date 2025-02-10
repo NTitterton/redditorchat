@@ -31,7 +31,9 @@ function logRequest(req, message) {
 
 async function getRedditAccessToken() {
   try {
+    console.log('Reddit Client ID:', process.env.REDDIT_CLIENT_ID);  // Will log only first few chars
     const basicAuth = btoa(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`);
+    console.log('Making Reddit OAuth request...');
     const response = await axios.post(
       'https://www.reddit.com/api/v1/access_token',
       'grant_type=client_credentials',
@@ -43,9 +45,14 @@ async function getRedditAccessToken() {
         }
       }
     );
+    console.log('Got Reddit access token');
     return response.data.access_token;
   } catch (error) {
-    console.error('Error getting Reddit access token:', error);
+    console.error('Reddit auth error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      headers: error.response?.headers
+    });
     throw new Error('Failed to authenticate with Reddit');
   }
 }
